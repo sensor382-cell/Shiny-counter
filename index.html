@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shiny Counter – Seaglass</title>
+  <style>
+    :root { --bg:#0b0b0f; --card:#141420; --txt:#f3f3f7; --muted:#b9b9c6; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+           background: radial-gradient(1200px 600px at 10% 0%, #1b0b14 0%, var(--bg) 50%),
+                       radial-gradient(1000px 700px at 90% 10%, #120b2a 0%, var(--bg) 60%);
+           color: var(--txt); }
+    .wrap { max-width: 520px; margin: 0 auto; padding: 18px; }
+    .card { background: rgba(20,20,32,.92); border: 1px solid rgba(255,255,255,.08);
+            border-radius: 18px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    h1 { font-size: 18px; margin: 0 0 10px; }
+    .sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; line-height: 1.35; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat { padding: 12px; border-radius: 14px; background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.06); }
+    .label { color: var(--muted); font-size: 12px; }
+    .value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+    .big { margin-top: 12px; }
+    .chance { font-size: 32px; font-weight: 800; letter-spacing: .2px; }
+    .bar { height: 10px; background: rgba(255,255,255,.08); border-radius: 999px; overflow:hidden; margin-top: 10px; }
+    .bar > div { height: 100%; width: 0%; background: linear-gradient(90deg, #ff2d55, #ff9500);
+                border-radius: 999px; transition: width .15s ease; }
+    .btns { display:flex; gap: 10px; margin-top: 14px; }
+    button { flex:1; padding: 14px 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,.10);
+             background: rgba(255,255,255,.06); color: var(--txt); font-size: 16px; font-weight: 700; }
+    button:active { transform: translateY(1px); }
+    .primary { background: linear-gradient(90deg, #ff2d55, #ff3b30); border: none; }
+    .ghost { background: transparent; }
+    .row { display:flex; gap: 10px; margin-top: 10px; }
+    input { width: 100%; padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,.10);
+            background: rgba(0,0,0,.25); color: var(--txt); font-size: 16px; }
+    .tiny { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Shiny Counter – Emerald Seaglass</h1>
+      <div class="sub">
+        Taux : <b>1 / 683</b> (Charme Chroma).<br>
+        Le % affiché = probabilité cumulée d’avoir vu <b>au moins 1 shiny</b>.
+      </div>
+
+      <div class="grid">
+        <div class="stat">
+          <div class="label">Rencontres</div>
+          <div class="value" id="n">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Probabilité cumulée</div>
+          <div class="value" id="p">0,00%</div>
+        </div>
+      </div>
+
+      <div class="big stat" style="margin-top:12px;">
+        <div class="label">Progression</div>
+        <div class="chance" id="pBig">0,00%</div>
+        <div class="bar"><div id="barFill"></div></div>
+      </div>
+
+      <div class="btns">
+        <button class="primary" id="plus">+1</button>
+        <button id="minus">-1</button>
+      </div>
+      <div class="btns">
+        <button class="ghost" id="reset">Reset</button>
+      </div>
+
+      <div class="row">
+        <input id="setN" type="number" min="0" inputmode="numeric" placeholder="Mettre un nombre (ex: 1234)" />
+        <button id="apply">Appliquer</button>
+      </div>
+
+      <div class="tiny">
+        Sauvegarde auto sur ton téléphone (même en fermant).<br>
+        Astuce : Chrome → ⋮ → <b>Ajouter à l’écran d’accueil</b> pour l’avoir comme une app.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ODDS = 683;
+    const key = "seaglass_shiny_counter_v1";
+
+    function clamp(n){ return Math.max(0, Math.floor(Number(n) || 0)); }
+
+    function probAtLeastOne(n){
+      // 1 - (1 - 1/ODDS)^n
+      return 1 - Math.pow((ODDS - 1) / ODDS, n);
+    }
+
+    function fmtPct(x){
+      return (x * 100).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
+    }
+
+    function load(){
+      const raw = localStorage.getItem(key);
+      return raw ? clamp(raw) : 0;
+    }
+
+    function save(n){
+      localStorage.setItem(key, String(n));
+    }
+
+    function render(n){
+      const p = probAtLeastOne(n);
+      document.getElementById("n").textContent = n.toLocaleString("fr-FR");
+      document.getElementById("p").textContent = fmtPct(p);
+      document.getElementById("pBig").textContent = fmtPct(p);
+      document.getElementById("barFill").style.width = Math.min(100, p * 100) + "%";
+    }
+
+    let n = load();
+    render(n);
+
+    document.getElementById("plus").onclick = () => { n = clamp(n + 1); save(n); render(n); };
+    document.getElementById("minus").onclick = () => { n = clamp(n - 1); save(n); render(n); };
+    document.getElementById("reset").onclick = () => {
+      if(confirm("Reset le compteur ?")) { n = 0; save(n); render(n); }
+    };
+
+    document.getElementById("apply").onclick = () => {
+      const v = clamp(document.getElementById("setN").value);
+      n = v; save(n); render(n);
+      document.getElementById("setN").value = "";
+    };
+  </script>
+</body>
+  </html>
